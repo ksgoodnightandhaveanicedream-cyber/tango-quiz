@@ -32,5 +32,6 @@ const WORDS = [
   { term: "ターミナル", meaning: "コマンド(文字による指示)を入力してコンピュータを操作するための画面(アプリ)のこと。" },
   { term: "JavaScript", meaning: "主にWebページに動きや対話性を加えるためのプログラミング言語。ブラウザ上で直接実行できる。Node.jsを使えばサーバー側でも動かせる。拡張子は.js。", type: "language", quizKey: "javascript" },
   { term: "Node.js", meaning: "JavaScriptをブラウザの外(パソコンやサーバー上)で実行できるようにする実行環境。プログラミング言語ではなく、JavaScriptを動かすための土台。" },
-  { term: "IDE", meaning: "統合開発環境。コードの色分けや入力補完、エラー指摘、実行・デバッグなど、開発に必要な機能をまとめたアプリのこと。例: VS Code、PyCharm。" }
+  { term: "IDE", meaning: "統合開発環境。コードの色分けや入力補完、エラー指摘、実行・デバッグなど、開発に必要な機能をまとめたアプリのこと。例: VS Code、PyCharm。" },
+  { term: "API", meaning: "Application Programming Interfaceの略。あるソフトウェアの機能を、他のソフトウェアから呼び出して使えるようにするための窓口(仕組み)。" }
 ];
