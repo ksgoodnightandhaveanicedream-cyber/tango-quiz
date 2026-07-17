@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生成AI・プログラミング単語帳</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --text: #2b2d3a;
+    --sub: #6b6f80;
+    --accent: #5b6cff;
+    --accent-dark: #4451d6;
+    --correct: #2fa66a;
+    --wrong: #e5484d;
+    --border: #e3e5ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1c22;
+      --card-bg: #26272f;
+      --text: #eceef5;
+      --sub: #a4a7b8;
+      --accent: #7c8bff;
+      --accent-dark: #939fff;
+      --correct: #4cc98a;
+      --wrong: #ff6b70;
+      --border: #383a45;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px 60px;
+  }
+  .app { width: 100%; max-width: 640px; }
+  h1 { font-size: 1.4rem; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--sub); font-size: 0.85rem; margin-bottom: 20px; }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+    font-family: inherit;
+  }
+  .word-count { font-size: 0.78rem; color: var(--sub); margin-bottom: 10px; }
+  .word-item {
+    border-top: 1px solid var(--border);
+    padding: 12px 2px;
+  }
+  .word-item:first-child { border-top: none; }
+  .word-term { font-weight: 700; font-size: 0.98rem; margin-bottom: 4px; }
+  .word-meaning { font-size: 0.85rem; color: var(--sub); line-height: 1.6; }
+  .empty-msg { text-align: center; color: var(--sub); font-size: 0.85rem; padding: 20px 0; }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 480px) {
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+  .cat-btn {
+    text-align: left;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: var(--text);
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .cat-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .cat-btn .cat-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .cat-btn .cat-desc { font-size: 0.78rem; color: var(--sub); margin-bottom: 8px; }
+  .cat-btn .cat-best { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 0.2s; }
+  .q-meta { font-size: 0.78rem; color: var(--sub); margin-bottom: 8px; }
+  .q-label { font-size: 0.78rem; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+  .q-label.hidden-label { display: none; }
+  .q-text { font-size: 1.05rem; line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap; }
+  .choice-list { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .choice-btn.correct {
+    border-color: var(--correct);
+    background: color-mix(in srgb, var(--correct) 15%, var(--card-bg));
+    font-weight: 600;
+  }
+  .choice-btn.wrong {
+    border-color: var(--wrong);
+    background: color-mix(in srgb, var(--wrong) 15%, var(--card-bg));
+  }
+  .choice-btn:disabled { cursor: default; opacity: 0.85; }
+  .explanation {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--sub);
+    display: none;
+  }
+  .explanation.show { display: block; }
+  .btn-row { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+  button { font-family: inherit; }
+  .primary-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .primary-btn:hover { background: var(--accent-dark); }
+  .primary-btn:disabled { opacity: 0.4; cursor: default; }
+  .ghost-btn {
+    background: transparent;
+    color: var(--sub);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .result-score { font-size: 2.2rem; font-weight: 700; text-align: center; color: var(--accent); margin: 8px 0 4px; }
+  .result-sub { text-align: center; color: var(--sub); font-size: 0.88rem; margin-bottom: 18px; }
+  .review-item { border-top: 1px solid var(--border); padding: 12px 0; font-size: 0.85rem; }
+  .review-item:first-child { border-top: none; }
+  .review-q { margin-bottom: 6px; }
+  .review-mark { font-weight: 700; margin-right: 6px; }
+  .review-mark.ok { color: var(--correct); }
+  .review-mark.ng { color: var(--wrong); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>生成AI・プログラミング単語帳</h1>
+  <p class="subtitle">専門用語の一覧確認と、ジャンル別クイズができます</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-list">一覧</button>
+    <button class="tab-btn" id="tab-quiz">クイズ</button>
+  </div>
+
+  <!-- 一覧画面 -->
+  <div id="screen-list">
+    <div class="card">
+      <input type="text" id="search-input" placeholder="用語または意味で検索...">
+      <div class="word-count" id="word-count"></div>
+      <div id="word-list"></div>
+    </div>
+  </div>
+
+  <!-- クイズ:カテゴリ選択画面 -->
+  <div id="screen-quiz-categories" class="hidden">
+    <div class="card">
+      <p style="font-size:0.85rem; color:var(--sub); margin-top:0;">挑戦したいジャンルを選んでください。</p>
+      <div class="cat-grid" id="quiz-cat-grid"></div>
+    </div>
+  </div>
+
+  <!-- クイズ:問題画面 -->
+  <div id="screen-quiz" class="hidden">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="card">
+      <div class="q-meta" id="q-meta"></div>
+      <div class="q-label" id="q-label"></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="choice-list" id="choice-list"></div>
+      <div class="explanation" id="explanation"></div>
+      <div class="btn-row">
+        <button class="ghost-btn" id="btn-quit">やめてジャンル一覧に戻る</button>
+        <button class="primary-btn" id="btn-next" disabled>次へ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- クイズ:結果画面 -->
+  <div id="screen-result" class="hidden">
+    <div class="card">
+      <div class="result-score" id="result-score"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div id="review-list"></div>
+      <div class="btn-row">
+        <button class="ghost-btn" id="btn-retry">もう一度</button>
+        <button class="primary-btn" id="btn-back">ジャンル一覧に戻る</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="単語帳データ.js"></script>
+<script src="単語帳文法データ.js"></script>
+<script>
+const BEST_KEY = "tango_best_scores_v2";
+
+let quizState = {
+  categoryKey: null,
+  categoryName: "",
+  label: "",
+  questions: [],
+  index: 0,
+  correctCount: 0,
+  answered: false,
+  review: [],
+  restart: null
+};
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+/* ---------- タブ切り替え ---------- */
+function showScreen(id) {
+  ["screen-list", "screen-quiz-categories", "screen-quiz", "screen-result"].forEach(s => {
+    document.getElementById(s).classList.toggle("hidden", s !== id);
+  });
+}
+
+function setTab(tab) {
+  document.getElementById("tab-list").classList.toggle("active", tab === "list");
+  document.getElementById("tab-quiz").classList.toggle("active", tab === "quiz");
+  if (tab === "list") {
+    showScreen("screen-list");
+  } else {
+    renderQuizCategories();
+    showScreen("screen-quiz-categories");
+  }
+}
+
+document.getElementById("tab-list").addEventListener("click", () => setTab("list"));
+document.getElementById("tab-quiz").addEventListener("click", () => setTab("quiz"));
+
+/* ---------- 一覧画面 ---------- */
+function renderWordList(filter) {
+  const listEl = document.getElementById("word-list");
+  const q = (filter || "").trim().toLowerCase();
+  const filtered = WORDS.filter(w =>
+    !q || w.term.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
+  );
+  document.getElementById("word-count").textContent = `${filtered.length} / ${WORDS.length} 語を表示中`;
+
+  listEl.innerHTML = "";
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="empty-msg">該当する用語が見つかりませんでした。</div>';
+    return;
+  }
+  filtered.forEach(w => {
+    const div = document.createElement("div");
+    div.className = "word-item";
+    div.innerHTML = `<div class="word-term">${escapeHtml(w.term)}</div><div class="word-meaning">${escapeHtml(w.meaning)}</div>`;
+    listEl.appendChild(div);
+  });
+}
+
+document.getElementById("search-input").addEventListener("input", (e) => {
+  renderWordList(e.target.value);
+});
+
+/* ---------- ベストスコア管理(カテゴリキーごと) ---------- */
+function loadBestScores() {
+  try {
+    return JSON.parse(localStorage.getItem(BEST_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveBestScore(key, percent) {
+  const scores = loadBestScores();
+  if (!scores[key] || scores[key] < percent) {
+    scores[key] = percent;
+    localStorage.setItem(BEST_KEY, JSON.stringify(scores));
+  }
+}
+
+/* ---------- クイズ:ジャンル一覧 ---------- */
+function languageCategories() {
+  const seen = new Set();
+  const langs = [];
+  WORDS.forEach(w => {
+    if (w.type === "language" && w.quizKey && GRAMMAR_QUIZZES[w.quizKey] && !seen.has(w.quizKey)) {
+      seen.add(w.quizKey);
+      langs.push({ quizKey: w.quizKey, term: w.term, data: GRAMMAR_QUIZZES[w.quizKey] });
+    }
+  });
+  return langs;
+}
+
+function renderQuizCategories() {
+  const grid = document.getElementById("quiz-cat-grid");
+  const best = loadBestScores();
+  grid.innerHTML = "";
+
+  const wordBtn = document.createElement("button");
+  wordBtn.className = "cat-btn";
+  const wordBest = best["words"];
+  const wordQCount = Math.min(WORDS.length, 10);
+  wordBtn.innerHTML = `
+    <div class="cat-name">単語編</div>
+    <div class="cat-desc">登録されている用語の意味当てクイズ(全${wordQCount}問)</div>
+    <div class="cat-best">${wordBest !== undefined ? "自己ベスト: " + wordBest + "%" : "未挑戦"}</div>
+  `;
+  wordBtn.addEventListener("click", startWordQuiz);
+  grid.appendChild(wordBtn);
+
+  languageCategories().forEach(lang => {
+    const btn = document.createElement("button");
+    btn.className = "cat-btn";
+    const langBest = best[lang.quizKey];
+    btn.innerHTML = `
+      <div class="cat-name">${escapeHtml(lang.data.name)}</div>
+      <div class="cat-desc">${escapeHtml(lang.term)}の文法クイズ・難易度順(全${lang.data.questions.length}問)</div>
+      <div class="cat-best">${langBest !== undefined ? "自己ベスト: " + langBest + "%" : "未挑戦"}</div>
+    `;
+    btn.addEventListener("click", () => startGrammarQuiz(lang));
+    grid.appendChild(btn);
+  });
+
+  if (WORDS.length < 4) {
+    const note = document.createElement("div");
+    note.className = "empty-msg";
+    note.style.gridColumn = "1 / -1";
+    note.textContent = "単語編クイズには4語以上の登録が必要です。";
+    grid.appendChild(note);
+  }
+}
+
+/* ---------- クイズ:出題ロジック(共通形式に変換) ---------- */
+function buildWordQuestion(word) {
+  const others = shuffle(WORDS.filter(w => w.term !== word.term)).slice(0, 3);
+  const choices = shuffle([word.term, ...others.map(o => o.term)]);
+  return {
+    text: word.meaning,
+    choices,
+    correctIndex: choices.indexOf(word.term),
+    exp: null
+  };
+}
+
+function startWordQuiz() {
+  const poolSize = Math.min(WORDS.length, 10);
+  const order = shuffle(WORDS).slice(0, poolSize);
+  quizState = {
+    categoryKey: "words",
+    categoryName: "単語編",
+    label: "この意味を表す用語はどれ?",
+    questions: order.map(buildWordQuestion),
+    index: 0,
+    correctCount: 0,
+    answered: false,
+    review: [],
+    restart: startWordQuiz
+  };
+  showScreen("screen-quiz");
+  renderQuestion();
+}
+
+function startGrammarQuiz(lang) {
+  quizState = {
+    categoryKey: lang.quizKey,
+    categoryName: lang.data.name,
+    label: "",
+    questions: lang.data.questions.map(q => ({
+      text: q.q,
+      choices: q.choices,
+      correctIndex: q.answer,
+      exp: q.exp
+    })),
+    index: 0,
+    correctCount: 0,
+    answered: false,
+    review: [],
+    restart: () => startGrammarQuiz(lang)
+  };
+  showScreen("screen-quiz");
+  renderQuestion();
+}
+
+function currentQuestion() {
+  return quizState.questions[quizState.index];
+}
+
+function renderQuestion() {
+  const q = currentQuestion();
+  quizState.answered = false;
+
+  document.getElementById("progress-fill").style.width =
+    (quizState.index / quizState.questions.length * 100) + "%";
+  document.getElementById("q-meta").textContent =
+    `${quizState.categoryName} - 第${quizState.index + 1}問 / 全${quizState.questions.length}問`;
+
+  const labelEl = document.getElementById("q-label");
+  if (quizState.label) {
+    labelEl.textContent = quizState.label;
+    labelEl.classList.remove("hidden-label");
+  } else {
+    labelEl.classList.add("hidden-label");
+  }
+
+  document.getElementById("q-text").textContent = q.text;
+
+  const list = document.getElementById("choice-list");
+  list.innerHTML = "";
+  q.choices.forEach((choice, i) => {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.textContent = choice;
+    btn.addEventListener("click", () => selectChoice(i));
+    list.appendChild(btn);
+  });
+
+  const exp = document.getElementById("explanation");
+  exp.classList.remove("show");
+  exp.textContent = "";
+
+  document.getElementById("btn-next").disabled = true;
+}
+
+function selectChoice(i) {
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const q = currentQuestion();
+  const buttons = document.querySelectorAll("#choice-list .choice-btn");
+  buttons.forEach((btn, idx) => {
+    btn.disabled = true;
+    if (idx === q.correctIndex) btn.classList.add("correct");
+    else if (idx === i) btn.classList.add("wrong");
+  });
+
+  const isCorrect = i === q.correctIndex;
+  if (isCorrect) quizState.correctCount++;
+  quizState.review.push({
+    text: q.text,
+    correct: isCorrect,
+    yourAnswer: q.choices[i],
+    correctAnswer: q.choices[q.correctIndex],
+    exp: q.exp
+  });
+
+  if (q.exp) {
+    const exp = document.getElementById("explanation");
+    exp.textContent = (isCorrect ? "○ 正解です。 " : "× 不正解です。 ") + q.exp;
+    exp.classList.add("show");
+  }
+
+  document.getElementById("btn-next").disabled = false;
+}
+
+function nextQuestion() {
+  if (!quizState.answered) return;
+  if (quizState.index + 1 < quizState.questions.length) {
+    quizState.index++;
+    renderQuestion();
+  } else {
+    document.getElementById("progress-fill").style.width = "100%";
+    finishQuiz();
+  }
+}
+
+function finishQuiz() {
+  const total = quizState.questions.length;
+  const percent = Math.round((quizState.correctCount / total) * 100);
+  saveBestScore(quizState.categoryKey, percent);
+
+  document.getElementById("result-score").textContent = `${quizState.correctCount} / ${total} 問正解`;
+  document.getElementById("result-sub").textContent = `正答率 ${percent}%(${quizState.categoryName})`;
+
+  const reviewList = document.getElementById("review-list");
+  reviewList.innerHTML = "";
+  quizState.review.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "review-item";
+    div.innerHTML = `
+      <div class="review-q"><span class="review-mark ${r.correct ? "ok" : "ng"}">${r.correct ? "○" : "×"}</span>問${i + 1}: ${escapeHtml(r.text.split("\n")[0])}</div>
+      ${r.correct ? "" : `<div style="color:var(--sub);font-size:0.8rem;">あなたの回答: ${escapeHtml(r.yourAnswer)} / 正解: ${escapeHtml(r.correctAnswer)}</div>`}
+    `;
+    reviewList.appendChild(div);
+  });
+
+  showScreen("screen-result");
+}
+
+document.getElementById("btn-next").addEventListener("click", nextQuestion);
+document.getElementById("btn-quit").addEventListener("click", () => {
+  renderQuizCategories();
+  showScreen("screen-quiz-categories");
+});
+document.getElementById("btn-retry").addEventListener("click", () => {
+  if (quizState.restart) quizState.restart();
+});
+document.getElementById("btn-back").addEventListener("click", () => {
+  renderQuizCategories();
+  showScreen("screen-quiz-categories");
+});
+
+/* ---------- 初期表示 ---------- */
+renderWordList("");
+setTab("list");
+</script>
+</body>
+</html>
