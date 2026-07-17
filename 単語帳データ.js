@@ -33,5 +33,6 @@ const WORDS = [
   { term: "JavaScript", meaning: "主にWebページに動きや対話性を加えるためのプログラミング言語。ブラウザ上で直接実行できる。Node.jsを使えばサーバー側でも動かせる。拡張子は.js。", type: "language", quizKey: "javascript" },
   { term: "Node.js", meaning: "JavaScriptをブラウザの外(パソコンやサーバー上)で実行できるようにする実行環境。プログラミング言語ではなく、JavaScriptを動かすための土台。" },
   { term: "IDE", meaning: "統合開発環境。コードの色分けや入力補完、エラー指摘、実行・デバッグなど、開発に必要な機能をまとめたアプリのこと。例: VS Code、PyCharm。" },
-  { term: "API", meaning: "Application Programming Interfaceの略。あるソフトウェアの機能を、他のソフトウェアから呼び出して使えるようにするための窓口(仕組み)。" }
+  { term: "API", meaning: "Application Programming Interfaceの略。あるソフトウェアの機能を、他のソフトウェアから呼び出して使えるようにするための窓口(仕組み)。" },
+  { term: "パラメータ", meaning: "関数やプログラムの動作を決めるための設定値のこと。関数を定義する側から見た「受け取る値の名前」を指すことが多く、呼び出す側が渡す値である「引数」とほぼ同じ意味で使われることも多い。" }
 ];
