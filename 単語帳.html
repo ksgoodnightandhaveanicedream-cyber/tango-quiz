@@ -358,6 +358,8 @@ function renderWordList(filter) {
   );
   if (currentSort === "alpha") {
     filtered = filtered.slice().sort((a, b) => a.term.localeCompare(b.term, "ja"));
+  } else {
+    filtered = filtered.slice().reverse();
   }
   document.getElementById("word-count").textContent = `${filtered.length} / ${WORDS.length} 語を表示中`;
 
