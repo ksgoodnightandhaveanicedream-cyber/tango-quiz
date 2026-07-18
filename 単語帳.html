@@ -83,14 +83,37 @@
     font-family: inherit;
   }
   .word-count { font-size: 0.78rem; color: var(--sub); margin-bottom: 10px; }
+  .sort-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .sort-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .sort-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
   .word-item {
     border-top: 1px solid var(--border);
     padding: 12px 2px;
+    cursor: pointer;
+    border-radius: 8px;
   }
   .word-item:first-child { border-top: none; }
+  .word-item:hover { background: var(--bg); }
   .word-term { font-weight: 700; font-size: 0.98rem; margin-bottom: 4px; }
   .word-meaning { font-size: 0.85rem; color: var(--sub); line-height: 1.6; }
   .empty-msg { text-align: center; color: var(--sub); font-size: 0.85rem; padding: 20px 0; }
+
+  .detail-term { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+  .detail-type { font-size: 0.78rem; color: var(--accent); font-weight: 600; margin-bottom: 14px; }
+  .detail-meaning { font-size: 0.95rem; line-height: 1.8; }
 
   .cat-grid {
     display: grid;
@@ -210,8 +233,24 @@
   <div id="screen-list">
     <div class="card">
       <input type="text" id="search-input" placeholder="用語または意味で検索...">
+      <div class="sort-row">
+        <button class="sort-btn active" id="sort-default">登録順</button>
+        <button class="sort-btn" id="sort-alpha">あいうえお/アルファベット順</button>
+      </div>
       <div class="word-count" id="word-count"></div>
       <div id="word-list"></div>
+    </div>
+  </div>
+
+  <!-- 単語詳細画面 -->
+  <div id="screen-detail" class="hidden">
+    <div class="card">
+      <div class="detail-term" id="detail-term"></div>
+      <div class="detail-type hidden" id="detail-type"></div>
+      <div class="detail-meaning" id="detail-meaning"></div>
+      <div class="btn-row">
+        <button class="ghost-btn" id="btn-detail-back">一覧に戻る</button>
+      </div>
     </div>
   </div>
 
@@ -287,7 +326,7 @@ function escapeHtml(str) {
 
 /* ---------- タブ切り替え ---------- */
 function showScreen(id) {
-  ["screen-list", "screen-quiz-categories", "screen-quiz", "screen-result"].forEach(s => {
+  ["screen-list", "screen-detail", "screen-quiz-categories", "screen-quiz", "screen-result"].forEach(s => {
     document.getElementById(s).classList.toggle("hidden", s !== id);
   });
 }
@@ -307,12 +346,19 @@ document.getElementById("tab-list").addEventListener("click", () => setTab("list
 document.getElementById("tab-quiz").addEventListener("click", () => setTab("quiz"));
 
 /* ---------- 一覧画面 ---------- */
+let currentSort = "default"; // "default" | "alpha"
+let currentFilter = "";
+
 function renderWordList(filter) {
+  if (filter !== undefined) currentFilter = filter;
   const listEl = document.getElementById("word-list");
-  const q = (filter || "").trim().toLowerCase();
-  const filtered = WORDS.filter(w =>
+  const q = currentFilter.trim().toLowerCase();
+  let filtered = WORDS.filter(w =>
     !q || w.term.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
   );
+  if (currentSort === "alpha") {
+    filtered = filtered.slice().sort((a, b) => a.term.localeCompare(b.term, "ja"));
+  }
   document.getElementById("word-count").textContent = `${filtered.length} / ${WORDS.length} 語を表示中`;
 
   listEl.innerHTML = "";
@@ -324,12 +370,44 @@ function renderWordList(filter) {
     const div = document.createElement("div");
     div.className = "word-item";
     div.innerHTML = `<div class="word-term">${escapeHtml(w.term)}</div><div class="word-meaning">${escapeHtml(w.meaning)}</div>`;
+    div.addEventListener("click", () => showWordDetail(w));
     listEl.appendChild(div);
   });
 }
 
 document.getElementById("search-input").addEventListener("input", (e) => {
   renderWordList(e.target.value);
+});
+
+document.getElementById("sort-default").addEventListener("click", () => {
+  currentSort = "default";
+  document.getElementById("sort-default").classList.add("active");
+  document.getElementById("sort-alpha").classList.remove("active");
+  renderWordList();
+});
+document.getElementById("sort-alpha").addEventListener("click", () => {
+  currentSort = "alpha";
+  document.getElementById("sort-alpha").classList.add("active");
+  document.getElementById("sort-default").classList.remove("active");
+  renderWordList();
+});
+
+/* ---------- 単語詳細画面 ---------- */
+function showWordDetail(word) {
+  document.getElementById("detail-term").textContent = word.term;
+  const typeEl = document.getElementById("detail-type");
+  if (word.type === "language") {
+    typeEl.textContent = "プログラミング言語";
+    typeEl.classList.remove("hidden");
+  } else {
+    typeEl.classList.add("hidden");
+  }
+  document.getElementById("detail-meaning").textContent = word.meaning;
+  showScreen("screen-detail");
+}
+
+document.getElementById("btn-detail-back").addEventListener("click", () => {
+  showScreen("screen-list");
 });
 
 /* ---------- ベストスコア管理(カテゴリキーごと) ---------- */
