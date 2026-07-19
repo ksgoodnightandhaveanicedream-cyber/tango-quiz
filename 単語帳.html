@@ -298,6 +298,11 @@
   <div id="screen-quiz-categories" class="hidden">
     <div class="card">
       <p style="font-size:0.85rem; color:var(--sub); margin-top:0;">挑戦したいジャンルを選んでください。</p>
+      <div class="sort-row">
+        <select class="category-select" id="quiz-category-filter">
+          <option value="">単語編:すべてのカテゴリから出題</option>
+        </select>
+      </div>
       <div class="cat-grid" id="quiz-cat-grid"></div>
     </div>
   </div>
@@ -337,6 +342,8 @@
 <script>
 const BEST_KEY = "tango_best_scores_v2";
 const STATS_KEY = "tango_word_stats_v1";
+
+let quizCategoryFilter = "";
 
 let quizState = {
   categoryKey: null,
@@ -392,8 +399,8 @@ let currentSort = "default"; // "default" | "alpha"
 let currentFilter = "";
 let currentCategory = "";
 
-function populateCategoryFilter() {
-  const select = document.getElementById("category-filter");
+function populateCategoryOptions(selectId) {
+  const select = document.getElementById(selectId);
   const cats = [...new Set(WORDS.map(w => w.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ja"));
   cats.forEach(cat => {
     const opt = document.createElement("option");
@@ -439,6 +446,11 @@ document.getElementById("search-input").addEventListener("input", (e) => {
 document.getElementById("category-filter").addEventListener("change", (e) => {
   currentCategory = e.target.value;
   renderWordList();
+});
+
+document.getElementById("quiz-category-filter").addEventListener("change", (e) => {
+  quizCategoryFilter = e.target.value;
+  renderQuizCategories();
 });
 
 document.getElementById("sort-default").addEventListener("click", () => {
@@ -590,29 +602,40 @@ function renderQuizCategories() {
   const best = loadBestScores();
   grid.innerHTML = "";
 
-  const wordQCount = Math.min(WORDS.length, 10);
+  const pool = quizCategoryFilter ? WORDS.filter(w => w.category === quizCategoryFilter) : WORDS;
+  const wordQCount = Math.min(pool.length, 10);
+  const scoreSuffix = quizCategoryFilter ? `:${quizCategoryFilter}` : "";
+  const namePrefix = quizCategoryFilter ? `[${quizCategoryFilter}] ` : "";
 
-  const wordBtn = document.createElement("button");
-  wordBtn.className = "cat-btn";
-  const wordBest = best["words"];
-  wordBtn.innerHTML = `
-    <div class="cat-name">単語編(意味→用語)</div>
-    <div class="cat-desc">意味を見て、当てはまる用語を選ぶクイズ(全${wordQCount}問)</div>
-    <div class="cat-best">${wordBest !== undefined ? "自己ベスト: " + wordBest + "%" : "未挑戦"}</div>
-  `;
-  wordBtn.addEventListener("click", () => startWordQuiz(false));
-  grid.appendChild(wordBtn);
+  if (pool.length >= 4) {
+    const wordBtn = document.createElement("button");
+    wordBtn.className = "cat-btn";
+    const wordBest = best["words" + scoreSuffix];
+    wordBtn.innerHTML = `
+      <div class="cat-name">${escapeHtml(namePrefix)}単語編(意味→用語)</div>
+      <div class="cat-desc">意味を見て、当てはまる用語を選ぶクイズ(全${wordQCount}問)</div>
+      <div class="cat-best">${wordBest !== undefined ? "自己ベスト: " + wordBest + "%" : "未挑戦"}</div>
+    `;
+    wordBtn.addEventListener("click", () => startWordQuiz(false));
+    grid.appendChild(wordBtn);
 
-  const reverseBtn = document.createElement("button");
-  reverseBtn.className = "cat-btn";
-  const reverseBest = best["words-reverse"];
-  reverseBtn.innerHTML = `
-    <div class="cat-name">単語編(用語→意味)</div>
-    <div class="cat-desc">用語を見て、正しい意味を選ぶクイズ(全${wordQCount}問)</div>
-    <div class="cat-best">${reverseBest !== undefined ? "自己ベスト: " + reverseBest + "%" : "未挑戦"}</div>
-  `;
-  reverseBtn.addEventListener("click", () => startWordQuiz(true));
-  grid.appendChild(reverseBtn);
+    const reverseBtn = document.createElement("button");
+    reverseBtn.className = "cat-btn";
+    const reverseBest = best["words-reverse" + scoreSuffix];
+    reverseBtn.innerHTML = `
+      <div class="cat-name">${escapeHtml(namePrefix)}単語編(用語→意味)</div>
+      <div class="cat-desc">用語を見て、正しい意味を選ぶクイズ(全${wordQCount}問)</div>
+      <div class="cat-best">${reverseBest !== undefined ? "自己ベスト: " + reverseBest + "%" : "未挑戦"}</div>
+    `;
+    reverseBtn.addEventListener("click", () => startWordQuiz(true));
+    grid.appendChild(reverseBtn);
+  } else {
+    const note = document.createElement("div");
+    note.className = "empty-msg";
+    note.style.gridColumn = "1 / -1";
+    note.textContent = "このカテゴリには4語以上の登録が必要です。";
+    grid.appendChild(note);
+  }
 
   const weakWords = getWeakWords();
   if (weakWords.length > 0) {
@@ -641,19 +664,11 @@ function renderQuizCategories() {
     btn.addEventListener("click", () => startGrammarQuiz(lang));
     grid.appendChild(btn);
   });
-
-  if (WORDS.length < 4) {
-    const note = document.createElement("div");
-    note.className = "empty-msg";
-    note.style.gridColumn = "1 / -1";
-    note.textContent = "単語編クイズには4語以上の登録が必要です。";
-    grid.appendChild(note);
-  }
 }
 
 /* ---------- クイズ:出題ロジック(共通形式に変換) ---------- */
-function buildWordQuestion(word, reverse) {
-  const others = shuffle(WORDS.filter(w => w.term !== word.term)).slice(0, 3);
+function buildWordQuestion(word, reverse, pool) {
+  const others = shuffle((pool || WORDS).filter(w => w.term !== word.term)).slice(0, 3);
   if (reverse) {
     const choices = shuffle([word.meaning, ...others.map(o => o.meaning)]);
     return {
@@ -675,13 +690,16 @@ function buildWordQuestion(word, reverse) {
 }
 
 function startWordQuiz(reverse) {
-  const poolSize = Math.min(WORDS.length, 10);
-  const order = shuffle(WORDS).slice(0, poolSize);
+  const pool = quizCategoryFilter ? WORDS.filter(w => w.category === quizCategoryFilter) : WORDS;
+  const poolSize = Math.min(pool.length, 10);
+  const order = shuffle(pool).slice(0, poolSize);
+  const scoreSuffix = quizCategoryFilter ? `:${quizCategoryFilter}` : "";
+  const namePrefix = quizCategoryFilter ? `[${quizCategoryFilter}] ` : "";
   quizState = {
-    categoryKey: reverse ? "words-reverse" : "words",
-    categoryName: reverse ? "単語編(用語→意味)" : "単語編(意味→用語)",
+    categoryKey: (reverse ? "words-reverse" : "words") + scoreSuffix,
+    categoryName: namePrefix + (reverse ? "単語編(用語→意味)" : "単語編(意味→用語)"),
     label: reverse ? "この用語の意味はどれ?" : "この意味を表す用語はどれ?",
-    questions: order.map(w => buildWordQuestion(w, reverse)),
+    questions: order.map(w => buildWordQuestion(w, reverse, pool)),
     index: 0,
     correctCount: 0,
     answered: false,
@@ -851,7 +869,8 @@ document.getElementById("btn-back").addEventListener("click", () => {
 });
 
 /* ---------- 初期表示 ---------- */
-populateCategoryFilter();
+populateCategoryOptions("category-filter");
+populateCategoryOptions("quiz-category-filter");
 renderWordList("");
 setTab("list");
 </script>
