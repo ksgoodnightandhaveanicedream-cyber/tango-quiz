@@ -84,6 +84,29 @@
   }
   .word-count { font-size: 0.78rem; color: var(--sub); margin-bottom: 10px; }
   .sort-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .category-select {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--sub);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .ranking-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; }
+  .ranking-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    padding: 8px 2px;
+    font-size: 0.85rem;
+  }
+  .ranking-item:first-child { border-top: none; }
+  .ranking-item .ranking-term { font-weight: 600; }
+  .ranking-item .ranking-rate { color: var(--sub); white-space: nowrap; }
   .sort-btn {
     padding: 6px 12px;
     border-radius: 8px;
@@ -231,11 +254,20 @@
 
   <!-- 一覧画面 -->
   <div id="screen-list">
+    <div class="card hidden" id="ranking-card">
+      <div class="ranking-title">苦手な用語 TOP5</div>
+      <div id="ranking-list"></div>
+    </div>
     <div class="card">
       <input type="text" id="search-input" placeholder="用語または意味で検索...">
       <div class="sort-row">
         <button class="sort-btn active" id="sort-default">登録順</button>
         <button class="sort-btn" id="sort-alpha">あいうえお/アルファベット順</button>
+      </div>
+      <div class="sort-row">
+        <select class="category-select" id="category-filter">
+          <option value="">すべてのカテゴリ</option>
+        </select>
       </div>
       <div class="word-count" id="word-count"></div>
       <div id="word-list"></div>
@@ -296,6 +328,7 @@
 <script src="単語帳文法データ.js"></script>
 <script>
 const BEST_KEY = "tango_best_scores_v2";
+const STATS_KEY = "tango_word_stats_v1";
 
 let quizState = {
   categoryKey: null,
@@ -335,6 +368,7 @@ function setTab(tab) {
   document.getElementById("tab-list").classList.toggle("active", tab === "list");
   document.getElementById("tab-quiz").classList.toggle("active", tab === "quiz");
   if (tab === "list") {
+    renderWeakRanking();
     showScreen("screen-list");
   } else {
     renderQuizCategories();
@@ -348,13 +382,26 @@ document.getElementById("tab-quiz").addEventListener("click", () => setTab("quiz
 /* ---------- 一覧画面 ---------- */
 let currentSort = "default"; // "default" | "alpha"
 let currentFilter = "";
+let currentCategory = "";
+
+function populateCategoryFilter() {
+  const select = document.getElementById("category-filter");
+  const cats = [...new Set(WORDS.map(w => w.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ja"));
+  cats.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
+  });
+}
 
 function renderWordList(filter) {
   if (filter !== undefined) currentFilter = filter;
   const listEl = document.getElementById("word-list");
   const q = currentFilter.trim().toLowerCase();
   let filtered = WORDS.filter(w =>
-    !q || w.term.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
+    (!q || w.term.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)) &&
+    (!currentCategory || w.category === currentCategory)
   );
   if (currentSort === "alpha") {
     filtered = filtered.slice().sort((a, b) => a.term.localeCompare(b.term, "ja"));
@@ -379,6 +426,11 @@ function renderWordList(filter) {
 
 document.getElementById("search-input").addEventListener("input", (e) => {
   renderWordList(e.target.value);
+});
+
+document.getElementById("category-filter").addEventListener("change", (e) => {
+  currentCategory = e.target.value;
+  renderWordList();
 });
 
 document.getElementById("sort-default").addEventListener("click", () => {
@@ -429,6 +481,61 @@ function saveBestScore(key, percent) {
   }
 }
 
+/* ---------- 単語ごとの正誤統計(苦手復習・ランキング用) ---------- */
+function loadWordStats() {
+  try {
+    return JSON.parse(localStorage.getItem(STATS_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function recordWordStat(term, isCorrect) {
+  const stats = loadWordStats();
+  if (!stats[term]) stats[term] = { correct: 0, wrong: 0 };
+  if (isCorrect) stats[term].correct++;
+  else stats[term].wrong++;
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function getWeakWords() {
+  const stats = loadWordStats();
+  const weak = WORDS.filter(w => stats[w.term] && stats[w.term].wrong > 0);
+  weak.sort((a, b) => {
+    const sa = stats[a.term], sb = stats[b.term];
+    const rateA = sa.wrong / (sa.wrong + sa.correct);
+    const rateB = sb.wrong / (sb.wrong + sb.correct);
+    return rateB - rateA;
+  });
+  return weak;
+}
+
+function renderWeakRanking() {
+  const card = document.getElementById("ranking-card");
+  const stats = loadWordStats();
+  const entries = Object.keys(stats)
+    .map(term => {
+      const s = stats[term];
+      const total = s.correct + s.wrong;
+      return { term, total, rate: Math.round((s.correct / total) * 100) };
+    })
+    .filter(e => e.total > 0)
+    .sort((a, b) => a.rate - b.rate || b.total - a.total)
+    .slice(0, 5);
+
+  if (entries.length === 0) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  document.getElementById("ranking-list").innerHTML = entries.map(e => `
+    <div class="ranking-item">
+      <span class="ranking-term">${escapeHtml(e.term)}</span>
+      <span class="ranking-rate">正答率 ${e.rate}%(${e.total}回挑戦)</span>
+    </div>
+  `).join("");
+}
+
 /* ---------- クイズ:ジャンル一覧 ---------- */
 function languageCategories() {
   const seen = new Set();
@@ -447,17 +554,44 @@ function renderQuizCategories() {
   const best = loadBestScores();
   grid.innerHTML = "";
 
+  const wordQCount = Math.min(WORDS.length, 10);
+
   const wordBtn = document.createElement("button");
   wordBtn.className = "cat-btn";
   const wordBest = best["words"];
-  const wordQCount = Math.min(WORDS.length, 10);
   wordBtn.innerHTML = `
-    <div class="cat-name">単語編</div>
-    <div class="cat-desc">登録されている用語の意味当てクイズ(全${wordQCount}問)</div>
+    <div class="cat-name">単語編(意味→用語)</div>
+    <div class="cat-desc">意味を見て、当てはまる用語を選ぶクイズ(全${wordQCount}問)</div>
     <div class="cat-best">${wordBest !== undefined ? "自己ベスト: " + wordBest + "%" : "未挑戦"}</div>
   `;
-  wordBtn.addEventListener("click", startWordQuiz);
+  wordBtn.addEventListener("click", () => startWordQuiz(false));
   grid.appendChild(wordBtn);
+
+  const reverseBtn = document.createElement("button");
+  reverseBtn.className = "cat-btn";
+  const reverseBest = best["words-reverse"];
+  reverseBtn.innerHTML = `
+    <div class="cat-name">単語編(用語→意味)</div>
+    <div class="cat-desc">用語を見て、正しい意味を選ぶクイズ(全${wordQCount}問)</div>
+    <div class="cat-best">${reverseBest !== undefined ? "自己ベスト: " + reverseBest + "%" : "未挑戦"}</div>
+  `;
+  reverseBtn.addEventListener("click", () => startWordQuiz(true));
+  grid.appendChild(reverseBtn);
+
+  const weakWords = getWeakWords();
+  if (weakWords.length > 0) {
+    const weakBtn = document.createElement("button");
+    weakBtn.className = "cat-btn";
+    const weakBest = best["weak"];
+    const weakQCount = Math.min(weakWords.length, 10);
+    weakBtn.innerHTML = `
+      <div class="cat-name">苦手復習</div>
+      <div class="cat-desc">過去に間違えた用語だけを出題(全${weakQCount}問)</div>
+      <div class="cat-best">${weakBest !== undefined ? "自己ベスト: " + weakBest + "%" : "未挑戦"}</div>
+    `;
+    weakBtn.addEventListener("click", startWeakQuiz);
+    grid.appendChild(weakBtn);
+  }
 
   languageCategories().forEach(lang => {
     const btn = document.createElement("button");
@@ -482,30 +616,60 @@ function renderQuizCategories() {
 }
 
 /* ---------- クイズ:出題ロジック(共通形式に変換) ---------- */
-function buildWordQuestion(word) {
+function buildWordQuestion(word, reverse) {
   const others = shuffle(WORDS.filter(w => w.term !== word.term)).slice(0, 3);
+  if (reverse) {
+    const choices = shuffle([word.meaning, ...others.map(o => o.meaning)]);
+    return {
+      text: word.term,
+      choices,
+      correctIndex: choices.indexOf(word.meaning),
+      exp: null,
+      term: word.term
+    };
+  }
   const choices = shuffle([word.term, ...others.map(o => o.term)]);
   return {
     text: word.meaning,
     choices,
     correctIndex: choices.indexOf(word.term),
-    exp: null
+    exp: null,
+    term: word.term
   };
 }
 
-function startWordQuiz() {
+function startWordQuiz(reverse) {
   const poolSize = Math.min(WORDS.length, 10);
   const order = shuffle(WORDS).slice(0, poolSize);
   quizState = {
-    categoryKey: "words",
-    categoryName: "単語編",
-    label: "この意味を表す用語はどれ?",
-    questions: order.map(buildWordQuestion),
+    categoryKey: reverse ? "words-reverse" : "words",
+    categoryName: reverse ? "単語編(用語→意味)" : "単語編(意味→用語)",
+    label: reverse ? "この用語の意味はどれ?" : "この意味を表す用語はどれ?",
+    questions: order.map(w => buildWordQuestion(w, reverse)),
     index: 0,
     correctCount: 0,
     answered: false,
     review: [],
-    restart: startWordQuiz
+    restart: () => startWordQuiz(reverse)
+  };
+  showScreen("screen-quiz");
+  renderQuestion();
+}
+
+function startWeakQuiz() {
+  const weakWords = getWeakWords();
+  const poolSize = Math.min(weakWords.length, 10);
+  const order = shuffle(weakWords).slice(0, poolSize);
+  quizState = {
+    categoryKey: "weak",
+    categoryName: "苦手復習",
+    label: "この意味を表す用語はどれ?",
+    questions: order.map(w => buildWordQuestion(w, false)),
+    index: 0,
+    correctCount: 0,
+    answered: false,
+    review: [],
+    restart: startWeakQuiz
   };
   showScreen("screen-quiz");
   renderQuestion();
@@ -585,6 +749,7 @@ function selectChoice(i) {
 
   const isCorrect = i === q.correctIndex;
   if (isCorrect) quizState.correctCount++;
+  if (q.term) recordWordStat(q.term, isCorrect);
   quizState.review.push({
     text: q.text,
     correct: isCorrect,
@@ -650,6 +815,7 @@ document.getElementById("btn-back").addEventListener("click", () => {
 });
 
 /* ---------- 初期表示 ---------- */
+populateCategoryFilter();
 renderWordList("");
 setTab("list");
 </script>
