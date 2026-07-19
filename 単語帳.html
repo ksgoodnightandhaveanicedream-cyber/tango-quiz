@@ -377,6 +377,7 @@ function showScreen(id) {
   ["screen-list", "screen-detail", "screen-quiz-categories", "screen-quiz", "screen-result"].forEach(s => {
     document.getElementById(s).classList.toggle("hidden", s !== id);
   });
+  window.scrollTo(0, 0);
 }
 
 function setTab(tab) {
