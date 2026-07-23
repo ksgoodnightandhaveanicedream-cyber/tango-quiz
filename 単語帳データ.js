@@ -147,5 +147,6 @@ const WORDS = [
   { term: "ER図", meaning: "データベースの設計図。「エンティティ」(データとして扱うモノ。例: 顧客、注文)と、それらの「関係」(リレーションシップ)を箱と線で表し、データベース全体の構造を視覚的に整理するために使う。", category: "データベース" },
   { term: "ORM", meaning: "Object-Relational Mappingの略。プログラム内のオブジェクトとデータベースのテーブルを対応づけ、SQLを直接書かなくてもコードだけでデータの読み書きができるようにする仕組み。例: SQLAlchemy、Django ORM、Prismaなど。", category: "データベース" },
   { term: "ハルシネーション", meaning: "AI(特に生成AI)が、事実に基づかない情報をまるで真実であるかのように自信満々に生成してしまう現象。「幻覚」を意味する英語hallucinationが語源。出典を確認したり、重要な事実は別途裏取りするなどの対策が必要。", category: "AI・Claude Code" },
-  { term: "fetch", meaning: "「取ってくる」という意味。JavaScriptではサーバーからデータを取得する関数(fetch関数)を指し、Gitではリモートリポジトリの最新情報を自分のパソコンに取得するコマンド(git fetch)を指す。", category: "Web開発" }
+  { term: "fetch", meaning: "「取ってくる」という意味。JavaScriptではサーバーからデータを取得する関数(fetch関数)を指し、Gitではリモートリポジトリの最新情報を自分のパソコンに取得するコマンド(git fetch)を指す。", category: "Web開発" },
+  { term: "WAF", meaning: "Web Application Firewallの略。HTTP通信の中身を検査し、SQLインジェクションやXSSなど、Webアプリケーションを狙った攻撃のパターンを検知してブロックする専用のファイアウォール。クラウドサービスやCDNに組み込まれることが多い。", category: "セキュリティ・プライバシー" }
 ];
