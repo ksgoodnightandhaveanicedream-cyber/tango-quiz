@@ -1,0 +1,4 @@
+# 環境変数・秘密情報(APIキーなど)は絶対にコミットしない
+.env
+.env.local
+.env.*.local
