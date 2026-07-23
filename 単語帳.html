@@ -380,20 +380,44 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-function setTab(tab) {
-  document.getElementById("tab-list").classList.toggle("active", tab === "list");
-  document.getElementById("tab-quiz").classList.toggle("active", tab === "quiz");
-  if (tab === "list") {
-    renderWeakRanking();
-    showScreen("screen-list");
-  } else {
+/* ---------- 画面遷移履歴(スマホの戻るボタン対応) ----------
+   画面切り替えのたびに履歴(History API)にエントリを積み、
+   戻るボタン(popstate)ではアプリを閉じずに前の画面を表示する。 */
+function applyState(screen, data) {
+  if (screen === "quiz-categories") {
+    document.getElementById("tab-list").classList.remove("active");
+    document.getElementById("tab-quiz").classList.add("active");
     renderQuizCategories();
     showScreen("screen-quiz-categories");
+  } else if (screen === "detail") {
+    const word = data && WORDS.find(w => w.term === data.term);
+    if (word) {
+      renderWordDetail(word);
+    } else {
+      applyState("list");
+    }
+  } else if (screen === "quiz" || screen === "result") {
+    showScreen(screen === "quiz" ? "screen-quiz" : "screen-result");
+  } else {
+    document.getElementById("tab-list").classList.add("active");
+    document.getElementById("tab-quiz").classList.remove("active");
+    renderWeakRanking();
+    showScreen("screen-list");
   }
 }
 
-document.getElementById("tab-list").addEventListener("click", () => setTab("list"));
-document.getElementById("tab-quiz").addEventListener("click", () => setTab("quiz"));
+function goTo(screen, data) {
+  history.pushState({ screen, data: data || null }, "", "");
+  applyState(screen, data);
+}
+
+window.addEventListener("popstate", (e) => {
+  const state = e.state || { screen: "list" };
+  applyState(state.screen, state.data);
+});
+
+document.getElementById("tab-list").addEventListener("click", () => goTo("list"));
+document.getElementById("tab-quiz").addEventListener("click", () => goTo("quiz-categories"));
 
 /* ---------- 一覧画面 ---------- */
 let currentSort = "default"; // "default" | "alpha"
@@ -468,7 +492,7 @@ document.getElementById("sort-alpha").addEventListener("click", () => {
 });
 
 /* ---------- 単語詳細画面 ---------- */
-function showWordDetail(word) {
+function renderWordDetail(word) {
   document.getElementById("detail-term").textContent = word.term;
   const typeEl = document.getElementById("detail-type");
   if (word.type === "language") {
@@ -509,8 +533,12 @@ function showWordDetail(word) {
   showScreen("screen-detail");
 }
 
+function showWordDetail(word) {
+  goTo("detail", { term: word.term });
+}
+
 document.getElementById("btn-detail-back").addEventListener("click", () => {
-  showScreen("screen-list");
+  goTo("list");
 });
 
 /* ---------- ベストスコア管理(カテゴリキーごと) ---------- */
@@ -707,7 +735,7 @@ function startWordQuiz(reverse) {
     review: [],
     restart: () => startWordQuiz(reverse)
   };
-  showScreen("screen-quiz");
+  goTo("quiz");
   renderQuestion();
 }
 
@@ -726,7 +754,7 @@ function startWeakQuiz() {
     review: [],
     restart: startWeakQuiz
   };
-  showScreen("screen-quiz");
+  goTo("quiz");
   renderQuestion();
 }
 
@@ -747,7 +775,7 @@ function startGrammarQuiz(lang) {
     review: [],
     restart: () => startGrammarQuiz(lang)
   };
-  showScreen("screen-quiz");
+  goTo("quiz");
   renderQuestion();
 }
 
@@ -853,27 +881,26 @@ function finishQuiz() {
     reviewList.appendChild(div);
   });
 
-  showScreen("screen-result");
+  goTo("result");
 }
 
 document.getElementById("btn-next").addEventListener("click", nextQuestion);
 document.getElementById("btn-quit").addEventListener("click", () => {
-  renderQuizCategories();
-  showScreen("screen-quiz-categories");
+  goTo("quiz-categories");
 });
 document.getElementById("btn-retry").addEventListener("click", () => {
   if (quizState.restart) quizState.restart();
 });
 document.getElementById("btn-back").addEventListener("click", () => {
-  renderQuizCategories();
-  showScreen("screen-quiz-categories");
+  goTo("quiz-categories");
 });
 
 /* ---------- 初期表示 ---------- */
 populateCategoryOptions("category-filter");
 populateCategoryOptions("quiz-category-filter");
 renderWordList("");
-setTab("list");
+history.replaceState({ screen: "list" }, "", "");
+applyState("list");
 </script>
 </body>
 </html>
