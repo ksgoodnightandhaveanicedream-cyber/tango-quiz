@@ -150,5 +150,6 @@ const WORDS = [
   { term: "fetch", meaning: "「取ってくる」という意味。JavaScriptではサーバーからデータを取得する関数(fetch関数)を指し、Gitではリモートリポジトリの最新情報を自分のパソコンに取得するコマンド(git fetch)を指す。", category: "Web開発" },
   { term: "WAF", meaning: "Web Application Firewallの略。HTTP通信の中身を検査し、SQLインジェクションやXSSなど、Webアプリケーションを狙った攻撃のパターンを検知してブロックする専用のファイアウォール。クラウドサービスやCDNに組み込まれることが多い。", category: "セキュリティ・プライバシー" },
   { term: "CDN", meaning: "Content Delivery Networkの略。画像やCSS、JavaScriptなどのファイルを世界中の複数のサーバーにコピーしておき、利用者に地理的に近いサーバーから配信する仕組み。表示速度の向上や元サーバーの負荷軽減に役立つ。", category: "インフラ・運用" },
-  { term: "PM", meaning: "Project Managerの略。プロジェクト全体の計画・進行管理・関係者との調整を行う役割の人のこと。何を・いつまでに・誰が作るかを決め、遅れや問題が起きたときの対応も担う。", category: "プロジェクト管理" }
+  { term: "PM", meaning: "Project Managerの略。プロジェクト全体の計画・進行管理・関係者との調整を行う役割の人のこと。何を・いつまでに・誰が作るかを決め、遅れや問題が起きたときの対応も担う。", category: "プロジェクト管理" },
+  { term: "PL", meaning: "Project Leaderの略。プロジェクトの実務面を現場で取りまとめる役割の人のこと。チームメンバーへのタスク割り振りや進捗管理、技術的な相談役を担う。予算や全体責任を持つPM(Project Manager)より現場・実行寄りの立場になることが多い。", category: "プロジェクト管理" }
 ];
