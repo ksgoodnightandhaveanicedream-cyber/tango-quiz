@@ -315,5 +315,6 @@ const WORDS = [
   { term: "REPL", meaning: "Read-Eval-Print Loopの略。コードを1行(または少しずつ)入力すると、すぐに実行結果が返ってくる対話的な実行環境のこと。例: PythonやNode.jsの対話モード、Jupyter Notebook。", category: "プログラミング基礎" },
   { term: "Jupyter Notebook", meaning: "コード・実行結果・説明文(Markdown)を「セル」という単位でまとめて記録・実行できるツール。拡張子は.ipynb。セルごとに実行して結果をすぐ確認できるため、データ分析や学習でよく使われる。", category: "プログラミング基礎" },
   { term: "仮想環境", meaning: "プロジェクトごとに、使用するライブラリのバージョンなどを独立させて管理できる環境のこと。例: Pythonの`python -m venv`で作る環境。他のプロジェクトとライブラリのバージョンが衝突するのを防げる。", category: "インフラ・運用" },
-  { term: "PHP", meaning: "主にWebサイトのサーバー側の処理(ログイン、フォーム送信、データベースとのやり取りなど)を書くためのプログラミング言語。HTMLの中に直接コードを埋め込めるのが特徴。WordPressもPHPで作られている。拡張子は.php。", type: "language", quizKey: "php", category: "プログラミング言語" }
+  { term: "PHP", meaning: "主にWebサイトのサーバー側の処理(ログイン、フォーム送信、データベースとのやり取りなど)を書くためのプログラミング言語。HTMLの中に直接コードを埋め込めるのが特徴。WordPressもPHPで作られている。拡張子は.php。", type: "language", quizKey: "php", category: "プログラミング言語" },
+  { term: "NotebookLM", meaning: "Googleが提供するAIノートツール。PDF・Googleドキュメント・Webページ・YouTube動画などの資料(ソース)をアップロードすると、その資料の内容だけをもとに要約・質問への回答・学習用のまとめなどを作ってくれる。回答に資料の引用元が示されるのが特徴で、ポッドキャスト風の音声解説も作れる。", category: "AI・Claude Code" }
 ];
