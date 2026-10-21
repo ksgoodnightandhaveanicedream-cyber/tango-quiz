@@ -317,5 +317,6 @@ const WORDS = [
   { term: "仮想環境", meaning: "プロジェクトごとに、使用するライブラリのバージョンなどを独立させて管理できる環境のこと。例: Pythonの`python -m venv`で作る環境。他のプロジェクトとライブラリのバージョンが衝突するのを防げる。", category: "インフラ・運用" },
   { term: "PHP", meaning: "主にWebサイトのサーバー側の処理(ログイン、フォーム送信、データベースとのやり取りなど)を書くためのプログラミング言語。HTMLの中に直接コードを埋め込めるのが特徴。WordPressもPHPで作られている。拡張子は.php。", type: "language", quizKey: "php", category: "プログラミング言語" },
   { term: "Markdown", meaning: "「# 見出し」「- 箇条書き」のような簡単な記号で文章の構造を表す、シンプルな書式のテキスト形式。拡張子は.md。ただのテキストなのでAIがそのまま正確に読め、README.mdやCLAUDE.mdなどAI・開発の資料でよく使われる。", category: "AI・Claude Code" },
-  { term: "トークン", meaning: "AIが文章を処理するときの最小単位。日本語ならおおよそ1〜2文字で1トークン程度。AIが一度に読める量や利用料金・処理速度はトークン数で決まるため、余計な装飾や情報が少ないほど効率がよい。", category: "AI・Claude Code" }
+  { term: "トークン", meaning: "AIが文章を処理するときの最小単位。日本語ならおおよそ1〜2文字で1トークン程度。AIが一度に読める量や利用料金・処理速度はトークン数で決まるため、余計な装飾や情報が少ないほど効率がよい。", category: "AI・Claude Code" },
+  { term: "RAG", meaning: "Retrieval-Augmented Generation(検索拡張生成)の略。AIが回答する前に、社内資料やドキュメントなどから関連する情報を検索し、それを参考にして回答を作る仕組み。AIが学習していない最新情報や独自の資料にも答えられ、ハルシネーションを減らせる。", category: "AI・Claude Code" }
 ];
